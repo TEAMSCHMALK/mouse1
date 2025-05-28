@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cursor Designer Studio</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+      text-align: center;
+    }
+    #grid {
+      display: grid;
+      grid-template-columns: repeat(20, 12px);
+      grid-template-rows: repeat(20, 12px);
+      gap: 1px;
+      background: #eee;
+      margin: 0 auto 10px;
+      width: calc(20 * 12px + 19px);
+    }
+    .pixel {
+      width: 12px;
+      height: 12px;
+      background: transparent;
+      cursor: pointer;
+    }
+    .pixel.active {
+      background: black;
+    }
+    button {
+      margin: 5px;
+      padding: 8px 12px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>Cursor Designer Studio (20×20)</h1>
+  <div id="grid"></div>
+  <div>
+    <button id="saveBtn">Save & Apply Cursor</button>
+    <button id="downloadBtn">Download PNG</button>
+    <button id="resetBtn">Reset Grid</button>
+  </div>
+  <p>Click pixels to toggle them. Save applies it in-iframe; Download gives you a PNG file to upload.</p>
+
+  <script>
+    const dimension = 20;
+    const grid = document.getElementById('grid');
+    const saveBtn = document.getElementById('saveBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const resetBtn = document.getElementById('resetBtn');
+
+    // Build pixel grid
+    for (let i = 0; i < dimension * dimension; i++) {
+      const pix = document.createElement('div');
+      pix.className = 'pixel';
+      pix.addEventListener('click', () => pix.classList.toggle('active'));
+      grid.appendChild(pix);
+    }
+
+    // Helper: generate Data-URL from current grid
+    function generateCursorDataURL() {
+      const canvas = document.createElement('canvas');
+      canvas.width = canvas.height = dimension;
+      const ctx = canvas.getContext('2d');
+      Array.from(grid.children).forEach((pix, idx) => {
+        if (pix.classList.contains('active')) {
+          const x = idx % dimension;
+          const y = Math.floor(idx / dimension);
+          ctx.fillRect(x, y, 1, 1);
+        }
+      });
+      return canvas.toDataURL('image/png');
+    }
+
+    // Save & apply, then notify parent
+    saveBtn.addEventListener('click', () => {
+      const dataURL = generateCursorDataURL();
+      document.body.style.cursor = `url(${dataURL}) 0 0, auto`;
+      alert('Custom cursor applied in this frame.');
+      window.parent.postMessage({ type: 'cursor-update', cursor: dataURL }, '*');
+    });
+
+    // Download as PNG
+    downloadBtn.addEventListener('click', () => {
+      const dataURL = generateCursorDataURL();
+      const link = document.createElement('a');
+      link.href = dataURL;
+      link.download = 'cursor.png';
+      link.click();
+    });
+
+    // Reset grid
+    resetBtn.addEventListener('click', () => {
+      document.querySelectorAll('.pixel.active').forEach(p => p.classList.remove('active'));
+    });
+  </script>
+</body>
+</html>
